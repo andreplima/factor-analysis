@@ -1,17 +1,7 @@
-#---------------------------------------------------------------------------------------------------------
-#R Code for Chapter 17 of:
-#
-#Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs and Rock 'N' Roll. #London Sage
-#
-#(c) 2011 Andy P. Field, Jeremy N. V. Miles & Zoe C. Field
 #-----------------------------------------------------------------------------------------------------------
-
-
-#-----------------------------------------------------------------------------------------------------------
-# This code has been adapted to perform factor analysis on the Serendipity'2018 dataset, which has been gently made available by the authors in:
-# Kotkov, D., Konstan, J. A., Zhao, Q., & Veijalainen, J. (2018, April). Investigating serendipity in recommender systems based on real
-#    user feedback. In Proceedings of the 33rd Annual ACM Symposium on Applied Computing (pp. 1341-1350). ACM.
-# dataset is available at: https://grouplens.org/datasets/serendipity-2018/
+# This script has been adapted from
+# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs and
+#    Rock 'N' Roll. (pp. ). #London Sage
 #-----------------------------------------------------------------------------------------------------------
 
 # sets the working directory
