@@ -115,7 +115,7 @@ cat("---------------------------------------------------------------------------
 # taken)
 cat("-- Loading the dataset and computing its correlation matrix.\n")
 raqData <- read.delim(file.path(imageDirectory, filename), header = TRUE)
-nv = ncol(raqData) # nd stands for the number of variables in the dataset
+nv = ncol(raqData) # nv stands for the number of variables in the dataset
 nf = ncol(raqData) # nf stands for the number of factors to be extracted
 ss = nrow(raqData) # ss stands for the sample size (number of cases)
 
@@ -181,7 +181,7 @@ while ((!KC1 && !KC2) || (!RC1 || !RC2)){
   text(1.2, 1.1, "Kaiser", col="red")
   abline(h=.7, col="red", lty=2, lwd=1)
   text(1.2, 0.8, "Jollife", col="red")
-  Sys.sleep(.1)
+  Sys.sleep(.5)
 
   # IMPORTANT: after consulting the scree plot and applying the Kaiser criteria (eigenvalue > 1),
   #            the number of factors to be extracted is selected and extracted
@@ -252,9 +252,16 @@ while(!UC1) {
   cat("Stage 3 - Performing factor rotation (iteration", iter, ", #factors =", nf, ")\n")
   cat("---------------------------------------------------------------------------------------------------------\n")
   
-  user.input <- dlgInput("Which rotation method should be applied? Type 'accept' to proceed to the next stage.", "promax")$res
-  if(user.input != "accept") {
-
+  
+  if(iter == 1) {
+    user.input <- dlgInput("Which rotation method should be applied? Type 'accept' to proceed to the next stage.", "promax")$res
+  } else {
+    user.input <- dlgInput("Which rotation method should be applied? Type 'accept' to proceed to the next stage.", "accept")$res
+  }
+  if(user.input == "accept") {
+    UC1 = TRUE
+    cat("-- Rotation method selected:", rotationMethod, "\n")
+  } else {
     rotationMethod = user.input
     pc4 <- principal(raqMatrix, nfactors = nf, rotate = rotationMethod)
     cat("-- Rotation method selected:", rotationMethod, "\n")
@@ -264,9 +271,6 @@ while(!UC1) {
     cat("-- Factor structure (for visual inspection -- double check if this structure matrix is similar to the pattern matrix)\n")
     print(factor.structure(pc4, cut = 0.3))
     readline(prompt="Press [enter] to continue")
-  } else {
-    UC1 = TRUE
-    cat("-- Rotation method selected:", rotationMethod, "\n")
   }
 }
  
@@ -307,7 +311,11 @@ for(factorName in names(clusters)) {
   cat("   Factor composition:", factorComp, "\n")
   cat("   Factor keys ......:", factorKeys, "\n")
   factorData <- raqData[, factorComp]
-  print(alpha(factorData, keys = factorKeys))
+  if(length(factorComp) > 1) {
+    print(alpha(factorData, keys = factorKeys))
+  } else {
+    cat("   Factor has a single item; no reliability will be computed.\n")
+  }
   readline(prompt="Press [enter] to continue")
 }
 
