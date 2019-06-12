@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------------------------------------
-# This code performs factor analysis on the Serendipity'2018 dataset, which has been gently made available
+# This code performs factor analysis on the Serendipity'2018 dataset, which has gently been made available
 # by the authors:
 # Kotkov, D., Konstan, J. A., Zhao, Q., & Veijalainen, J. (2018, April). Investigating serendipity in
 #   recommender systems based on real  user feedback. In Proceedings of the 33rd Annual ACM Symposium on
@@ -9,15 +9,16 @@
 # We would also like to acknolwdge the following authors for the R code for exploratory factor analysis, from
 # which we greatly benefitted:
 # Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs and
-#    Rock 'N' Roll. (pp. ). #London Sage
+#    Rock 'N' Roll. (pp. 749-811). #London Sage
 #-----------------------------------------------------------------------------------------------------------
 
 # removes the current environment variables
 rm(list = ls())
+plot.new()
 
 # sets the working directory
-setwd("D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis")
-imageDirectory<-"D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis/datasets/serendipity2018"
+setwd("C:/Users/andre/OneDrive/Área de Trabalho/Task - Factor Analysis/factor-analysis")
+imageDirectory<-"C:/Users/andre/OneDrive/Área de Trabalho/Task - Factor Analysis/factor-analysis/datasets/serendipity2018"
 filename = "answers.dat"
 
 # installs necessary packages
@@ -74,8 +75,8 @@ kmo = function(data){
   return(ans)
 }
 
-residual.stats <- function(matrix, nf){
-  residuals         <- as.matrix(matrix[upper.tri(matrix)])
+residual.stats <- function(residuals, nf){
+  
   large.resid       <- abs(residuals) > 0.05
   numberLargeResids <- sum(large.resid)
   propLargeResid    <- numberLargeResids/nrow(residuals)
@@ -86,9 +87,7 @@ residual.stats <- function(matrix, nf){
   cat("   .. Proportion of absolute residuals > 0.05 = ", propLargeResid, "\n")
   cat("   .. Root mean squared residual = ", rmsr, "\n")
   cat("   .. Normality of residuals (Shapiro-Wilk test): ", if (shapiro.test(residuals)$p.value > .05) "Passed" else "Failed", "\n")
-  hist(residuals, main = paste("2. Histogram of residuals for ", nf, "factors"))
-  Sys.sleep(.1)
-  
+
   return(propLargeResid)
 }
 
@@ -99,12 +98,26 @@ factor.structure <- function(fa, cut = 0.2, decimals = 2){
   return(structure.matrix)
 }
 
+displayScreePlot <- function(eigenvals) {
+  
+  # shows the scree plot (integral, non-rotated PCA)
+  par(mfg=c(1,1))
+  plot(eigenvals, type = "b", main = "1. Scree Plot from integral, non-rotated PCA", xlab = "component", ylab = "eigenvalue")
+  abline(h=1, col="red", lty=2, lwd=1)
+  text(1.2, 1.1, "Kaiser", col="red")
+  abline(h=.7, col="red", lty=2, lwd=1)
+  text(1.2, 0.8, "Jollife", col="red")
+
+}
+
+displayResidualsHist <- function(residuals, nf) {
+  par(mfg=c(1,2))
+  hist(residuals, main = paste("2. Histogram of residuals for ", nf, "factors"))
+}
+  
+
 # clears the current console content
 cat("\014")
-
-#---------------------------------------------------------------------------------------------------------
-# Stage 1 - loads the dataset and applies data quality tests
-#---------------------------------------------------------------------------------------------------------
 
 cat("---------------------------------------------------------------------------------------------------------\n")
 cat("Stage 1 - loads the preprocessed data and applies data quality tests\n")
@@ -151,13 +164,10 @@ if (DQ1 && DQ2 && DQ3) {
 } else {
   stop("   At least one of the data quality tests failed.\n")
 }
-
-#---------------------------------------------------------------------------------------------------------
-# Stage 2 - factor extraction
-#---------------------------------------------------------------------------------------------------------
 cat("\n")
 
 iter = 0
+cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
@@ -166,86 +176,96 @@ cat("---------------------------------------------------------------------------
 pc1 <- principal(raqMatrix, nfactors = nf, rotate = "none")
 print(pc1)
 
+# displays the scree plot
+dev.off()
+par(mfrow=c(1,3))
+displayScreePlot(pc1$values)
+Sys.sleep(.1)
+
 KC1 = FALSE
 KC2 = FALSE
 RC1 = FALSE
 RC2 = FALSE
-while ((!KC1 && !KC2) || (!RC1 || !RC2)){
+UC  = FALSE
+while (!UC){
   
   iter = iter + 1
-  
-  # shows the scree plot (integral, non-rotated PCA)
-  par(mfrow=c(1,2))
-  plot(pc1$values, type = "b", main = "1. Scree Plot from integral, non-rotated PCA", xlab = "component", ylab = "eigenvalue")
-  abline(h=1, col="red", lty=2, lwd=1)
-  text(1.2, 1.1, "Kaiser", col="red")
-  abline(h=.7, col="red", lty=2, lwd=1)
-  text(1.2, 0.8, "Jollife", col="red")
-  Sys.sleep(.5)
 
   # IMPORTANT: after consulting the scree plot and applying the Kaiser criteria (eigenvalue > 1),
   #            the number of factors to be extracted is selected and extracted
   #            the Kaiser's criterion was adopted (instead of the Jollife's) because in our initial analysis:
-  #            (1) the number of variables is smaller than 30 and extracted communalities are consistently larger than .7
-  #            (2) the sample size is larger than 250 and and extracted communalities are larger than .6 on average
-  user.input <- as.integer(dlgInput("After considering the scree plot and eigenvalues from PCA, what is the number of factors to extract? Type '0' to proceed with the current number of factors.", 1)$res)
+  #            (1) the number of variables was smaller than 30 and communalities were consistently larger than .7
+  #            (2) the sample size is larger than 250  and communalities were larger than .6 on average
+  
+  user.input <- as.integer(dlgInput("After considering the scree plot and eigenvalues from PCA, what is the number of factors to extract? Type '0' to proceed with the current number of factors.", nf)$res)
   if(user.input == 0) {
-    cat("** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.\n\n")
-    break
+    if((!KC1 && !KC2) || (!RC1 || !RC2)) {
+      cat("** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.\n\n")
+      UC = TRUE
+    }
   } else {
+    
     nf = user.input
-  }
-  
-  
-  #cat("\014")
-  cat("\n")
-  cat("---------------------------------------------------------------------------------------------------------\n")
-  cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
-  cat("---------------------------------------------------------------------------------------------------------\n")
-  
-  # applies PCA to extract a reduced number of eigenvectors
-  pc2 <- principal(raqMatrix, nfactors = nf, rotate = "none")
-  print(pc2)
-  
-  # assesses the communality of the selected factors to check if Kaiser's criteria still apply
-  # (1) the number of variables is smaller than 30 and extracted communalities are consistently larger than .7
-  # (2) the sample size is larger than 250 and and extracted communalities are larger than .6 on average
-  
-  cat("\n\n")
-  cat("-- Assessing Kaiser's criteria\n")
-  cat("   number of variables is ", nv, "\n")
-  cat("   extracted communalities consistently larger than 0.7: ", sum(pc2$communality > .7), "\n")
-  cat("   extracted communalities on average: ", mean(pc2$communality), "(preferably larger than 0.6)\n")
-  KC1 = nv < 30  && sum(pc2$communality > .2) == nv
-  KC2 = ss > 250 && mean(pc2$communality) > .6
-  cat("   .. Kaiser's criterion #1: ", if (KC1) "Passed" else "Failed", "\n")
-  cat("   .. Kaiser's criterion #2: ", if (KC2) "Passed" else "Failed", "\n")
-  if (KC1 || KC2) {
-    cat("   On Kaiser's criteria, the analysis may proceeed.\n")
-  } else {
-    cat("   On Kaiser criteria, the analysis should not proceed.\n")
-  }
-  cat("\n")
+    
+    cat("\n")
+    cat("---------------------------------------------------------------------------------------------------------\n")
+    cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
+    cat("---------------------------------------------------------------------------------------------------------\n")
+    
+    # applies PCA to extract a reduced number of eigenvectors
+    pc2 <- principal(raqMatrix, nfactors = nf, rotate = "none")
+    print(pc2)
+    
+    # assesses the communality of the selected factors to check if Kaiser's criteria still apply
+    # (1) the number of variables is smaller than 30 and extracted communalities are consistently larger than .7
+    # (2) the sample size is larger than 250 and and extracted communalities are larger than .6 on average
+    
+    cat("\n\n")
+    cat("-- Assessing Kaiser's criteria\n")
+    cat("   number of variables is ", nv, "\n")
+    cat("   extracted communalities consistently larger than 0.7: ", sum(pc2$communality > .7), "\n")
+    cat("   extracted communalities on average: ", mean(pc2$communality), "(preferably larger than 0.6)\n")
+    KC1 = nv < 30  && sum(pc2$communality > .2) == nv
+    KC2 = ss > 250 && mean(pc2$communality) > .6
+    cat("   .. Kaiser's criterion #1: ", if (KC1) "Passed" else "Failed", "\n")
+    cat("   .. Kaiser's criterion #2: ", if (KC2) "Passed" else "Failed", "\n")
+    if (KC1 || KC2) {
+      cat("   On Kaiser's criteria, the analysis may proceeed.\n")
+    } else {
+      cat("   On Kaiser criteria, the analysis should not proceed.\n")
+    }
+    cat("\n")
+    
+    # based on the obtained factor scores, reconstructs the correlation matrix, and compares it to the the original correlation matrix
+    # (a.k.a computes the residuals of the original/reconstructed model)
+    cat("-- Assessing a relative measure of fit between original and reconstructed correlation matrix\n")
+    RC1 = pc2$fit.off > 0.9
+    cat("   .. Fit test (residuals):", if (RC1) "Passed" else "Failed", "   ... (fit =", pc2$fit.off, "> 0.9)\n\n")
+    
+    cat("-- Assessing an absolute measure of fit between original and reconstructed correlation matrix\n")
+    residmatrix <- factor.residuals(raqMatrix, pc2$loadings)
+    residuals <- as.matrix(residmatrix[upper.tri(residmatrix)])
+    propLargeResid = residual.stats(residuals, nf)
+    RC2 = propLargeResid < 0.5
+    cat("   .. Fit test (residuals):", if (RC2) "Passed" else "Failed", "   ... (fit =", propLargeResid, "< 0.5)\n")
 
-  # based on the obtained factor scores, reconstructs the correlation matrix, and compares it to the the original correlation matrix
-  # (a.k.a computes the residuals of the original/reconstructed model)
-  cat("-- Assessing a relative measure of fit between original and reconstructed correlation matrix\n")
-  RC1 = pc2$fit.off > 0.9
-  cat("   .. Fit test (residuals):", if (RC1) "Passed" else "Failed", "   ... (fit =", pc2$fit.off, "> 0.9)\n\n")
-  
-  cat("-- Assessing an absolute measure of fit between original and reconstructed correlation matrix\n")
-  propLargeResid = residual.stats(factor.residuals(raqMatrix, pc2$loadings), nf)
-  RC2 = propLargeResid < 0.5
-  cat("   .. Fit test (residuals):", if (RC2) "Passed" else "Failed", "   ... (fit =", propLargeResid, "< 0.5)\n")
-  
-  cat("\n")
-  readline(prompt="Press [enter] to continue")
-  
+    # updates the graphical display
+    dev.off()
+    par(mfrow=c(1,3))
+    displayScreePlot(pc1$values)
+    displayResidualsHist(residuals, nf)
+    Sys.sleep(.1)
+
+    cat("-- Number of factors extracted:", nf, "\n")
+    cat("\n")
+    
+    readline(prompt="Press [enter] to continue")
+  }
 }
 
 iter = 0
-UC1 = FALSE
-while(!UC1) {
+UC = FALSE
+while(!UC) {
 
   iter = iter + 1
   cat("---------------------------------------------------------------------------------------------------------\n")
@@ -259,7 +279,7 @@ while(!UC1) {
     user.input <- dlgInput("Which rotation method should be applied? Type 'accept' to proceed to the next stage.", "accept")$res
   }
   if(user.input == "accept") {
-    UC1 = TRUE
+    UC = TRUE
     cat("-- Rotation method selected:", rotationMethod, "\n")
   } else {
     rotationMethod = user.input
