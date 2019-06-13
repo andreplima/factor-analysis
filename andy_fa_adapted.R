@@ -17,9 +17,12 @@ rm(list = ls())
 plot.new()
 
 # sets the working directory
-setwd("C:/Users/andre/OneDrive/Área de Trabalho/Task - Factor Analysis/factor-analysis")
-imageDirectory<-"C:/Users/andre/OneDrive/Área de Trabalho/Task - Factor Analysis/factor-analysis/datasets/serendipity2018"
-filename = "answers.dat"
+setwd("D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis")
+imageDirectory<-"D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis/datasets/serendipity2018"
+filename = "answers-s3-q.dat"
+
+cut_level = 0.3
+cut_2chkl = 0.2
 
 # installs necessary packages
 #install.packages("corpcor")
@@ -27,6 +30,8 @@ filename = "answers.dat"
 #install.packages("psych")
 #install.packages("pastecs")
 #install.packages("svDialogs")
+#install.packages("reshape2)
+#install.packages("ggplot2")
 
 # loads libraries
 library(corpcor)
@@ -34,6 +39,8 @@ library(GPArotation)
 library(psych)
 library(MASS) # used by kmo function
 library(svDialogs)
+library(reshape2)
+library(ggplot2)
 
 #---------------------------------------------------------------------------------------------------------
 # General definitions
@@ -91,7 +98,7 @@ residual.stats <- function(residuals, nf){
   return(propLargeResid)
 }
 
-factor.structure <- function(fa, cut = 0.2, decimals = 2){
+factor.structure <- function(fa, cut = cut_2chkl, decimals = 2){
   structure.matrix <- fa.sort(fa$loadings %*% fa$Phi)
   structure.matrix <- data.frame(ifelse(abs(structure.matrix) < cut, "", round(structure.matrix, decimals)))
 
@@ -99,22 +106,53 @@ factor.structure <- function(fa, cut = 0.2, decimals = 2){
 }
 
 displayScreePlot <- function(eigenvals) {
-  
-  # shows the scree plot (integral, non-rotated PCA)
+  # draws the scree plot (integral, non-rotated PCA)
   par(mfg=c(1,1))
   plot(eigenvals, type = "b", main = "1. Scree Plot from integral, non-rotated PCA", xlab = "component", ylab = "eigenvalue")
   abline(h=1, col="red", lty=2, lwd=1)
   text(1.2, 1.1, "Kaiser", col="red")
   abline(h=.7, col="red", lty=2, lwd=1)
   text(1.2, 0.8, "Jollife", col="red")
-
+  Sys.sleep(0.1)
 }
 
 displayResidualsHist <- function(residuals, nf) {
+  # plots the residuals histogram
   par(mfg=c(1,2))
   hist(residuals, main = paste("2. Histogram of residuals for ", nf, "factors"))
+  Sys.sleep(0.1)
 }
+
+displayFactorGraph <- function(results) {
+  # plots the factor-variable graph
+  par(mfg=c(1,3))
+  fa.diagram(results, main = "3. Factors and standardised loadings\n(from the pattern matrix)")
+  Sys.sleep(0.1)
+}
+
+displayLoadings <- function(results) {
   
+  #plot.new()
+  
+  # The results$loading element is an S3 object and cannot be directly coerced into a dataframe.
+  # Removing the class attribute gives you a matrix which can then be passed to 'melt'
+  # Tip from https://stackoverflow.com/questions/15585870/psych-getting-factor-loadings-as-data-frame-for-latex-export
+  loadings.m <- melt(unclass(fa.sort(results$loadings)), varnames=c("Item", "Factor"), value.name="Loading")
+  
+  # For each item from the survey questionnaire, plots the loading as length and fill color of a bar
+  # note that the length will be the absolute value of the loading but the fill color will be the signed value, 
+  # more on this below
+  ggplot(loadings.m, aes(Item, abs(Loading), fill=Loading)) + 
+    facet_wrap(~ Factor, nrow=1) + # places the factors in separate facets
+    geom_bar(stat="identity")    + # makes  the bars
+    coord_flip()                 + # flips  the axes so the test names can be horizontal  
+    # defines the fill color gradient: blue=positive, red=negative
+    scale_fill_gradient2(name = "Loading", high = "blue", mid = "white", low = "red", midpoint=0, guide=F) +
+    ylab("Loading Strength")     + # improves y-axis label
+    theme_bw(base_size=10)         # uses a black-and-white theme with set font size
+  
+  #Sys.sleep(.1)
+}
 
 # clears the current console content
 cat("\014")
@@ -135,7 +173,7 @@ ss = nrow(raqData) # ss stands for the sample size (number of cases)
 # creates the correlation matrix
 raqMatrix <- cor(raqData)
 round(raqMatrix, 2) #xxx rounding may be hurtful?
-cat("   The dataset has", ss, "samples and ", nf, "variables.\n")
+cat("   The dataset ", filename, " has", ss, "samples and ", nf, "variables.\n")
 
 cat("\n")
 cat("-- Applying data quality tests.\n")
@@ -180,7 +218,6 @@ print(pc1)
 dev.off()
 par(mfrow=c(1,3))
 displayScreePlot(pc1$values)
-Sys.sleep(.1)
 
 KC1 = FALSE
 KC2 = FALSE
@@ -254,7 +291,6 @@ while (!UC){
     par(mfrow=c(1,3))
     displayScreePlot(pc1$values)
     displayResidualsHist(residuals, nf)
-    Sys.sleep(.1)
 
     cat("-- Number of factors extracted:", nf, "\n")
     cat("\n")
@@ -285,16 +321,21 @@ while(!UC) {
     rotationMethod = user.input
     pc4 <- principal(raqMatrix, nfactors = nf, rotate = rotationMethod)
     cat("-- Rotation method selected:", rotationMethod, "\n")
-    print.psych(pc4, cut = 0.3, sort = TRUE) #xxx should we change the cut level?
+    print.psych(pc4, cut = cut_level, sort = TRUE)
     
     cat("\n\n")
     cat("-- Factor structure (for visual inspection -- double check if this structure matrix is similar to the pattern matrix)\n")
-    print(factor.structure(pc4, cut = 0.3))
+    print(factor.structure(pc4, cut = cut_level))
     readline(prompt="Press [enter] to continue")
+    #xxx what should be done if the factor loadings from the pattern and the structure matrices sharply disagree? 
   }
 }
  
-#xxx what should be done if factor loadings appear in different ranks across pattern and factor matrices? 
+# displays the factor-variable interactions graph, with loadings from the pattern matrix
+displayFactorGraph(pc4)
+
+# the other display goes in here
+
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
@@ -332,14 +373,19 @@ for(factorName in names(clusters)) {
   cat("   Factor keys ......:", factorKeys, "\n")
   factorData <- raqData[, factorComp]
   if(length(factorComp) > 1) {
-    print(alpha(factorData, keys = factorKeys))
+    print(psych::alpha(factorData, keys = factorKeys))
   } else {
     cat("   Factor has a single item; no reliability will be computed.\n")
   }
   readline(prompt="Press [enter] to continue")
 }
 
+
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 cat("The analysis has completed.\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
+
+# displays the variable loadings on each factor
+displayLoadings(pc4)
+
