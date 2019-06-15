@@ -16,13 +16,18 @@
 rm(list = ls())
 plot.new()
 
+# environment configuration options
+ECO_CUT_LEVEL  = 0.3
+ECO_CUT_2CHK   = 0.2
+ECO_PRECISION  = 3
+ECO_OPTIMETHOD = 'minres'
+
+
 # sets the working directory
-setwd("D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis")
-imageDirectory<-"D:/Users/Andre/Google Drive/Doutorado/SCC55951 - IHC Practice/factor-analysis/datasets/serendipity2018"
+setwd("C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis")
+imageDirectory<-"C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/datasets/serendipity2018"
 filename = "answers-s3-q.dat"
 
-cut_level = 0.3
-cut_2chkl = 0.2
 
 # installs necessary packages
 #install.packages("corpcor")
@@ -30,7 +35,7 @@ cut_2chkl = 0.2
 #install.packages("psych")
 #install.packages("pastecs")
 #install.packages("svDialogs")
-#install.packages("reshape2)
+#install.packages("reshape2")
 #install.packages("ggplot2")
 
 # loads libraries
@@ -74,7 +79,7 @@ kmo = function(data){
   else if (kmo >= 0.80 && kmo < 0.90) {test <- 'The KMO test yields a degree of common variance meritorious.' }
   else                                {test <- 'The KMO test yields a degree of common variance marvelous.' }
 
-  ans <- list(overall    = kmo,
+  ans <- list(overall    = round(kmo, ECO_PRECISION),
               report     = test,
               individual = MSA) #,
               #AIS        = AIS,
@@ -93,12 +98,12 @@ residual.stats <- function(residuals, nf){
   cat("   .. Number     of absolute residuals > 0.05 = ", numberLargeResids, "\n")
   cat("   .. Proportion of absolute residuals > 0.05 = ", propLargeResid, "\n")
   cat("   .. Root mean squared residual = ", rmsr, "\n")
-  cat("   .. Normality of residuals (Shapiro-Wilk test): ", if (shapiro.test(residuals)$p.value > .05) "Passed" else "Failed", "\n")
+  cat("   .. Normality of residuals:", if (shapiro.test(residuals)$p.value > .05) "Passed" else "Failed", "(Shapiro-Wilk test)\n")
 
   return(propLargeResid)
 }
 
-factor.structure <- function(fa, cut = cut_2chkl, decimals = 2){
+factor.structure <- function(fa, cut = ECO_CUT_2CHK, decimals = 2){
   structure.matrix <- fa.sort(fa$loadings %*% fa$Phi)
   structure.matrix <- data.frame(ifelse(abs(structure.matrix) < cut, "", round(structure.matrix, decimals)))
 
@@ -145,9 +150,9 @@ displayLoadings <- function(results) {
   ggplot(loadings.m, aes(Item, abs(Loading), fill=Loading)) + 
     facet_wrap(~ Factor, nrow=1) + # places the factors in separate facets
     geom_bar(stat="identity")    + # makes  the bars
-    coord_flip()                 + # flips  the axes so the test names can be horizontal  
+    coord_flip()                 + # flips  the axes so the items appear in the (common) y axis
     # defines the fill color gradient: blue=positive, red=negative
-    scale_fill_gradient2(name = "Loading", high = "blue", mid = "white", low = "red", midpoint=0, guide=F) +
+    scale_fill_gradient2(name = "Loading", high = "red", mid = "white", low = "blue", midpoint=0, guide=F) +
     ylab("Loading Strength")     + # improves y-axis label
     theme_bw(base_size=10)         # uses a black-and-white theme with set font size
   
@@ -197,8 +202,10 @@ cat("   Multicollinearity test checks for issues with too much communality among
 cat("   .. Multicollinearity test: ", if (DQ3) "Passed" else "Failed", '\n')
 
 if (DQ1 && DQ2 && DQ3) {
+  cat("\n")
   cat("   All data quality tests were ok.\n")
-	readline(prompt="Press [enter] to continue")
+  cat("\n")
+  readline(prompt="Press [enter] to continue")
 } else {
   stop("   At least one of the data quality tests failed.\n")
 }
@@ -210,8 +217,9 @@ cat("---------------------------------------------------------------------------
 cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 
-# applies PCA to identify eingenvectors that satisfies a cascaded optimised variance
+# applies PCA to identify eingenvectors
 pc1 <- principal(raqMatrix, nfactors = nf, rotate = "none")
+#pc1 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = "none")
 print(pc1)
 
 # displays the scree plot
@@ -249,8 +257,9 @@ while (!UC){
     cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
     cat("---------------------------------------------------------------------------------------------------------\n")
     
-    # applies PCA to extract a reduced number of eigenvectors
-    pc2 <- principal(raqMatrix, nfactors = nf, rotate = "none")
+    # applies FA to extract a reduced number of factors
+    #pc2 <- principal(raqMatrix, nfactors = nf, rotate = "none")
+    pc2 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = "none")
     print(pc2)
     
     # assesses the communality of the selected factors to check if Kaiser's criteria still apply
@@ -260,9 +269,9 @@ while (!UC){
     cat("\n\n")
     cat("-- Assessing Kaiser's criteria\n")
     cat("   number of variables is ", nv, "\n")
-    cat("   extracted communalities consistently larger than 0.7: ", sum(pc2$communality > .7), "\n")
-    cat("   extracted communalities on average: ", mean(pc2$communality), "(preferably larger than 0.6)\n")
-    KC1 = nv < 30  && sum(pc2$communality > .2) == nv
+    cat("   number of variables with communality larger than 0.7: ", sum(pc2$communality > .7), "\n")
+    cat("   average communality per variable ...................: ", round(mean(pc2$communality), ECO_PRECISION), "(preferably larger than 0.6)\n")
+    KC1 = nv < 30  && sum(pc2$communality   > .7) == nv
     KC2 = ss > 250 && mean(pc2$communality) > .6
     cat("   .. Kaiser's criterion #1: ", if (KC1) "Passed" else "Failed", "\n")
     cat("   .. Kaiser's criterion #2: ", if (KC2) "Passed" else "Failed", "\n")
@@ -277,14 +286,18 @@ while (!UC){
     # (a.k.a computes the residuals of the original/reconstructed model)
     cat("-- Assessing a relative measure of fit between original and reconstructed correlation matrix\n")
     RC1 = pc2$fit.off > 0.9
-    cat("   .. Fit test (residuals):", if (RC1) "Passed" else "Failed", "   ... (fit =", pc2$fit.off, "> 0.9)\n\n")
+    cat("   .. Fit test (residuals) .:", if (RC1) "Passed" else "Failed", "   ... (fit =", round(pc2$fit.off, ECO_PRECISION), "> 0.9)\n\n")
     
     cat("-- Assessing an absolute measure of fit between original and reconstructed correlation matrix\n")
     residmatrix <- factor.residuals(raqMatrix, pc2$loadings)
     residuals <- as.matrix(residmatrix[upper.tri(residmatrix)])
     propLargeResid = residual.stats(residuals, nf)
     RC2 = propLargeResid < 0.5
-    cat("   .. Fit test (residuals):", if (RC2) "Passed" else "Failed", "   ... (fit =", propLargeResid, "< 0.5)\n")
+    cat("   .. Fit test (residuals) .:", if (RC2) "Passed" else "Failed", "   ... (fit =", propLargeResid, "< 0.5)\n")
+
+    cat("\n")
+    cat("-- Number of factors extracted:", nf, "\n")
+    cat("\n")
 
     # updates the graphical display
     dev.off()
@@ -292,9 +305,6 @@ while (!UC){
     displayScreePlot(pc1$values)
     displayResidualsHist(residuals, nf)
 
-    cat("-- Number of factors extracted:", nf, "\n")
-    cat("\n")
-    
     readline(prompt="Press [enter] to continue")
   }
 }
@@ -319,13 +329,14 @@ while(!UC) {
     cat("-- Rotation method selected:", rotationMethod, "\n")
   } else {
     rotationMethod = user.input
-    pc4 <- principal(raqMatrix, nfactors = nf, rotate = rotationMethod)
+    #pc4 <- principal(raqMatrix, nfactors = nf, rotate = rotationMethod)
+    pc4 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod)
     cat("-- Rotation method selected:", rotationMethod, "\n")
-    print.psych(pc4, cut = cut_level, sort = TRUE)
+    print.psych(pc4, cut = ECO_CUT_LEVEL, sort = TRUE)
     
     cat("\n\n")
     cat("-- Factor structure (for visual inspection -- double check if this structure matrix is similar to the pattern matrix)\n")
-    print(factor.structure(pc4, cut = cut_level))
+    print(factor.structure(pc4, cut = ECO_CUT_LEVEL))
     readline(prompt="Press [enter] to continue")
     #xxx what should be done if the factor loadings from the pattern and the structure matrices sharply disagree? 
   }
@@ -334,8 +345,6 @@ while(!UC) {
 # displays the factor-variable interactions graph, with loadings from the pattern matrix
 displayFactorGraph(pc4)
 
-# the other display goes in here
-
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
@@ -343,9 +352,10 @@ cat("Stage 4 - Collecting factor scores (#factors =", nf, ")\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 
 # must use original data instead of the correlation matrix
-pc5 <- principal(raqData, nfactors = nf, rotate = rotationMethod, scores = TRUE)
+#pc5 <- principal(raqData, nfactors = nf, rotate = rotationMethod, scores = TRUE)
+pc5 <- fac(raqData, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod, scores = "regression")
 newraqData <- cbind(raqData, pc5$scores)
-cat("Factor scores have been appended to the original data and is available in the 'newraqData' variable.\n")
+cat("Factor scores have been appended to the original data and is available in the 'newraqData' object\n")
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
@@ -369,7 +379,9 @@ for(factorName in names(clusters)) {
       }
     }
   }
-  cat("   Factor composition:", factorComp, "\n")
+  #cat("   Factor composition:", factorComp, "\n")
+  #cat("   Factor keys ......:", factorKeys, "\n")
+  cat("   Factor composition:", rownames(clusters)[factorComp], "\n")
   cat("   Factor keys ......:", factorKeys, "\n")
   factorData <- raqData[, factorComp]
   if(length(factorComp) > 1) {
@@ -386,6 +398,6 @@ cat("---------------------------------------------------------------------------
 cat("The analysis has completed.\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 
-# displays the variable loadings on each factor
+# displays the loadings per variable on each factor
 displayLoadings(pc4)
 
