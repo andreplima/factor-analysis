@@ -1,24 +1,26 @@
 #-----------------------------------------------------------------------------------------------------------
-# This code performs factor analysis on the Serendipity'2018 dataset, which has gently been made available
-# by the authors:
+# This code performs factor analysis on the Serendipity'2018 dataset, which has generously been made 
+# available by the authors:
 # Kotkov, D., Konstan, J. A., Zhao, Q., & Veijalainen, J. (2018, April). Investigating serendipity in
-#   recommender systems based on real  user feedback. In Proceedings of the 33rd Annual ACM Symposium on
+#   recommender systems based on real user feedback. In Proceedings of the 33rd Annual ACM Symposium on
 #   Applied Computing (pp. 1341-1350). ACM.
-# The whole dataset is available at: https://grouplens.org/datasets/serendipity-2018/
+# The complete dataset is available at: https://grouplens.org/datasets/serendipity-2018/
 #
-# We would also like to acknolwdge the following authors for the R code for exploratory factor analysis, from
-# which we greatly benefitted:
-# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs and
-#    Rock 'N' Roll. (pp. 749-811). #London Sage
+# We would also like to acknowledge the following authors for the R code for exploratory factor analysis, 
+# from which we greatly benefitted:
+# Revelle, W. (2018) psych: Procedures for Personality and Psychological Research, Northwestern University,
+#    Evanston, Illinois, USA, https://CRAN.R-project.org/package=psych Version = 1.8.12.
+# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs 
+#    and Rock 'N' Roll. (pp. 749-811). London, Sage.
 #-----------------------------------------------------------------------------------------------------------
 
 # removes the current environment variables
 rm(list = ls())
 plot.new()
 
-# environment configuration options
+# sets up some environment configuration options
 ECO_CUT_LEVEL  = 0.3
-ECO_CUT_2CHK   = 0.2
+ECO_CUT_2CHK   = 0.1
 ECO_PRECISION  = 3
 ECO_OPTIMETHOD = 'minres'
 
@@ -26,7 +28,8 @@ ECO_OPTIMETHOD = 'minres'
 # sets the working directory
 setwd("C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis")
 imageDirectory<-"C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/datasets/serendipity2018"
-filename = "answers-s3-q.dat"
+#filename = "answers-ra-s3-q.dat"
+filename = "answers-nf-nf-me.dat"
 
 
 # installs necessary packages
@@ -46,28 +49,50 @@ library(MASS) # used by kmo function
 library(svDialogs)
 library(reshape2)
 library(ggplot2)
+library(grid)
+library(MVN)
+library(likert)
+library(polycor)
+library(gsubfn)
 
 #---------------------------------------------------------------------------------------------------------
 # General definitions
 #---------------------------------------------------------------------------------------------------------
 
+typeSer2018Data <- function(odata) {
+  data <- odata
+  idxs = paste("s", 1:8, sep="")
+  data[idxs] <- lapply(data[idxs], factor, levels = 1:5)
+  data["rating"] <- lapply(data["rating"],  factor, levels = seq(.5,5,by=.5))
+  datalk <- likert(data[idxs])
+  return(list(odata, data, datalk))
+}
+
+loadSer2018Data <- function(imageDirectory, filename){
+  data <- read.delim(file.path(imageDirectory, filename), header = TRUE)
+  data$q <- NULL  # removes the item that is related to recency of event
+  return(typeSer2018Data(data))
+}
+
 # KMO Kaiser-Meyer-Olkin Measure of Sampling Adequacy
 # Function by G. Jay Kerns, Ph.D., Youngstown State University (http://tolstoy.newcastle.edu.au/R/e2/help/07/08/22816.html)
-kmo = function(data){
-  X   <- cor(as.matrix(data));
+# Adapted by Andre P Lima for using a polychoric correlation matrix
+kmo = function(data, corMatrix){
+  #X   <- cor(as.matrix(data));
+  X   <- corMatrix$correlations;
   iX  <- ginv(X);
   S2  <- diag(diag((iX^-1)));
   AIS <- S2%*%iX%*%S2;                      # anti-image covariance matrix
-  IS  <- X+AIS-2*S2;                         # image covariance matrix
+  IS  <- X+AIS-2*S2;                        # image covariance matrix
   Dai <- sqrt(diag(diag(AIS)));
-  IR  <- ginv(Dai)%*%IS%*%ginv(Dai);         # image correlation matrix
+  IR  <- ginv(Dai)%*%IS%*%ginv(Dai);        # image correlation matrix
   AIR <- ginv(Dai)%*%AIS%*%ginv(Dai);       # anti-image correlation matrix
   a   <- apply((AIR - diag(diag(AIR)))^2, 2, sum);
   AA  <- sum(a);
   b   <- apply((X - diag(nrow(X)))^2, 2, sum);
   BB  <- sum(b);
   MSA <- b/(b+a);                        # indiv. measures of sampling adequacy
-  AIR <- AIR-diag(nrow(AIR))+diag(MSA);  # Examine the anti-image of the correlation matrix, i.e., the negative of the partial 
+  AIR <- AIR-diag(nrow(AIR))+diag(MSA);  # Examine the anti-image of the correlation matrix, i.e., the negative of the partial
                                          # correlations, contitioned on all other variables.
   kmo <- BB/(AA+BB);                     # overall KMO statistic
 
@@ -88,7 +113,7 @@ kmo = function(data){
 }
 
 residual.stats <- function(residuals, nf){
-  
+
   large.resid       <- abs(residuals) > 0.05
   numberLargeResids <- sum(large.resid)
   propLargeResid    <- numberLargeResids/nrow(residuals)
@@ -110,6 +135,11 @@ factor.structure <- function(fa, cut = ECO_CUT_2CHK, decimals = 2){
   return(structure.matrix)
 }
 
+displayLikert <- function(data_likert) {
+  plot(data_likert, include.histogram = TRUE)
+  Sys.sleep(.1)
+}
+
 displayScreePlot <- function(eigenvals) {
   # draws the scree plot (integral, non-rotated PCA)
   par(mfg=c(1,1))
@@ -124,39 +154,47 @@ displayScreePlot <- function(eigenvals) {
 displayResidualsHist <- function(residuals, nf) {
   # plots the residuals histogram
   par(mfg=c(1,2))
-  hist(residuals, main = paste("2. Histogram of residuals for ", nf, "factors"))
+  hist(residuals, main = paste("2. Histogram of residuals for ", nf, "factors"), col="gray", freq=FALSE)
+  x <- seq(min(residuals), max(residuals), by=10^-ECO_PRECISION)
+  curve(dnorm(x, mean=0, sd=sd(residuals)), add=TRUE, col="red")
   Sys.sleep(0.1)
 }
 
 displayFactorGraph <- function(results) {
   # plots the factor-variable graph
   par(mfg=c(1,3))
-  fa.diagram(results, main = "3. Factors and standardised loadings\n(from the pattern matrix)")
+  fa.diagram(results, main = "3. Factors and standardised loadings\n(from the pattern matrix)", marg = c(.5,.5, 5,.5))
   Sys.sleep(0.1)
 }
 
 displayLoadings <- function(results) {
-  
-  #plot.new()
+
+  plot.new()
   
   # The results$loading element is an S3 object and cannot be directly coerced into a dataframe.
   # Removing the class attribute gives you a matrix which can then be passed to 'melt'
   # Tip from https://stackoverflow.com/questions/15585870/psych-getting-factor-loadings-as-data-frame-for-latex-export
   loadings.m <- melt(unclass(fa.sort(results$loadings)), varnames=c("Item", "Factor"), value.name="Loading")
-  
+
   # For each item from the survey questionnaire, plots the loading as length and fill color of a bar
-  # note that the length will be the absolute value of the loading but the fill color will be the signed value, 
+  # note that the length will be the absolute value of the loading but the fill color will be the signed value,
   # more on this below
-  ggplot(loadings.m, aes(Item, abs(Loading), fill=Loading)) + 
+  
+  # And then you ask me: why "print" a ggplot object? That's why:
+  # https://stackoverflow.com/questions/38068774/rstudio-suddenly-stopped-showing-plots-in-in-plot-pane
+  
+  print(
+    ggplot(loadings.m, aes(Item, abs(Loading), fill=Loading)) +
+    coord_flip()                 + # flips  the axes so the items appear in the (common) y axis
+    ylab("Loading Strength")     + # improves y-axis label
     facet_wrap(~ Factor, nrow=1) + # places the factors in separate facets
     geom_bar(stat="identity")    + # makes  the bars
-    coord_flip()                 + # flips  the axes so the items appear in the (common) y axis
     # defines the fill color gradient: blue=positive, red=negative
     scale_fill_gradient2(name = "Loading", high = "red", mid = "white", low = "blue", midpoint=0, guide=F) +
-    ylab("Loading Strength")     + # improves y-axis label
-    theme_bw(base_size=10)         # uses a black-and-white theme with set font size
+    theme_bw(base_size=12)         # uses a black-and-white theme with set font size
+  )
   
-  #Sys.sleep(.1)
+  Sys.sleep(.1)
 }
 
 # clears the current console content
@@ -166,48 +204,58 @@ cat("---------------------------------------------------------------------------
 cat("Stage 1 - loads the preprocessed data and applies data quality tests\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 
-# loads the preprocessed data 
-# (assumes that any measures required to tackling missing and invalid data, as well as outliers, have already been 
-# taken)
+# loads the preprocessed data
+# (assumes that any measures needed to tackle outliers or missing/invalid data have already been taken
 cat("-- Loading the dataset and computing its correlation matrix.\n")
-raqData <- read.delim(file.path(imageDirectory, filename), header = TRUE)
-nv = ncol(raqData) # nv stands for the number of variables in the dataset
-nf = ncol(raqData) # nf stands for the number of factors to be extracted
-ss = nrow(raqData) # ss stands for the sample size (number of cases)
+
+list[oserData, serData, serDataLk] <- loadSer2018Data(imageDirectory, filename)
+nv = ncol(serData) # nv stands for the number of variables in the dataset
+nf = ncol(serData) # nf stands for the number of factors to be extracted
+ss = nrow(serData) # ss stands for the sample size (number of cases)
+cat("   The datafile ", filename, " has", ss, "samples and ", nf, "variables.\n")
 
 # creates the correlation matrix
-raqMatrix <- cor(raqData)
-round(raqMatrix, 2) #xxx rounding may be hurtful?
-cat("   The dataset ", filename, " has", ss, "samples and ", nf, "variables.\n")
+serMatrix <- hetcor(serData)
 
 cat("\n")
 cat("-- Applying data quality tests.\n")
 
 # applies Bartlett's sphericity test
-res = cortest.bartlett(raqMatrix, n=ss)
+res = cortest.bartlett(serMatrix$correlations, n=ss)
 DQ1 = res$p.value < 5e-2
 cat("   Bartlett test checks if the correlation matrix is significantly different from the identity.\n")
 cat("   .. Batlett test:", if (DQ1) "Passed" else "Failed", "   ... (p-value =", res$p.value, "< 0.05)\n")
 
 # applies a test based on the Keiser-Meyer-Olkin (KMO) measure for sampling adequacy
-res = kmo(raqData)
+res = kmo(serData, serMatrix)
 DQ2 = res$overall > .5
 cat("   KMO measure assesses the relation between partial and total correlations.\n")
 cat("   ..", res$report, "\n")
 cat("   .. KMO test:", if (DQ2) "Passed" else "Failed", "       ... (KMO =", res$overall, "> 0.5)\n")
 
 # applies the determinant test to assure correlations are not too high
-DQ3 = det(raqMatrix) > 1e-5
+DQ3 = det(serMatrix$correlations) > 1e-5
 cat("   Multicollinearity test checks for issues with too much communality among variables.\n")
 cat("   .. Multicollinearity test: ", if (DQ3) "Passed" else "Failed", '\n')
 
+# displays histograms for each variable (indicator) and
+displayLikert(serDataLk)
+
+# checks the test results
 if (DQ1 && DQ2 && DQ3) {
   cat("\n")
   cat("   All data quality tests were ok.\n")
   cat("\n")
   readline(prompt="Press [enter] to continue")
 } else {
-  stop("   At least one of the data quality tests failed.\n")
+  cat("\n")
+  cat("** At least one of the data quality tests has failed.\n")
+  user.input <- as.integer(dlgInput("At least one of the data quality tests has failed. Type '0' to proceed with the analysis.", 0)$res)
+  if(user.input == 0) {
+    cat("** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.\n")
+  } else {
+    stop("** The analysis was interrupted because violations of distributional assumptions were found.\n")
+  }
 }
 cat("\n")
 
@@ -218,8 +266,7 @@ cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", 
 cat("---------------------------------------------------------------------------------------------------------\n")
 
 # applies PCA to identify eingenvectors
-pc1 <- principal(raqMatrix, nfactors = nf, rotate = "none")
-#pc1 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = "none")
+pc1 <- principal(serMatrix$correlations, nfactors = nf, rotate = "none")
 print(pc1)
 
 # displays the scree plot
@@ -233,7 +280,7 @@ RC1 = FALSE
 RC2 = FALSE
 UC  = FALSE
 while (!UC){
-  
+
   iter = iter + 1
 
   # IMPORTANT: after consulting the scree plot and applying the Kaiser criteria (eigenvalue > 1),
@@ -241,31 +288,30 @@ while (!UC){
   #            the Kaiser's criterion was adopted (instead of the Jollife's) because in our initial analysis:
   #            (1) the number of variables was smaller than 30 and communalities were consistently larger than .7
   #            (2) the sample size is larger than 250  and communalities were larger than .6 on average
-  
+
   user.input <- as.integer(dlgInput("After considering the scree plot and eigenvalues from PCA, what is the number of factors to extract? Type '0' to proceed with the current number of factors.", nf)$res)
   if(user.input == 0) {
+    UC = TRUE
     if((!KC1 && !KC2) || (!RC1 || !RC2)) {
       cat("** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.\n\n")
-      UC = TRUE
     }
   } else {
-    
+
     nf = user.input
-    
+
     cat("\n")
     cat("---------------------------------------------------------------------------------------------------------\n")
     cat("Stage 2 - Performing factor extraction (iteration ", iter, ", #factors =", nf, ")\n")
     cat("---------------------------------------------------------------------------------------------------------\n")
-    
+
     # applies FA to extract a reduced number of factors
-    #pc2 <- principal(raqMatrix, nfactors = nf, rotate = "none")
-    pc2 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = "none")
+    pc2 <- fac(serMatrix$correlations, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = "none")
     print(pc2)
-    
+
     # assesses the communality of the selected factors to check if Kaiser's criteria still apply
     # (1) the number of variables is smaller than 30 and extracted communalities are consistently larger than .7
     # (2) the sample size is larger than 250 and and extracted communalities are larger than .6 on average
-    
+
     cat("\n\n")
     cat("-- Assessing Kaiser's criteria\n")
     cat("   number of variables is ", nv, "\n")
@@ -281,15 +327,15 @@ while (!UC){
       cat("   On Kaiser criteria, the analysis should not proceed.\n")
     }
     cat("\n")
-    
+
     # based on the obtained factor scores, reconstructs the correlation matrix, and compares it to the the original correlation matrix
     # (a.k.a computes the residuals of the original/reconstructed model)
     cat("-- Assessing a relative measure of fit between original and reconstructed correlation matrix\n")
     RC1 = pc2$fit.off > 0.9
     cat("   .. Fit test (residuals) .:", if (RC1) "Passed" else "Failed", "   ... (fit =", round(pc2$fit.off, ECO_PRECISION), "> 0.9)\n\n")
-    
+
     cat("-- Assessing an absolute measure of fit between original and reconstructed correlation matrix\n")
-    residmatrix <- factor.residuals(raqMatrix, pc2$loadings)
+    residmatrix <- factor.residuals(serMatrix$correlations, pc2$loadings)
     residuals <- as.matrix(residmatrix[upper.tri(residmatrix)])
     propLargeResid = residual.stats(residuals, nf)
     RC2 = propLargeResid < 0.5
@@ -317,8 +363,8 @@ while(!UC) {
   cat("---------------------------------------------------------------------------------------------------------\n")
   cat("Stage 3 - Performing factor rotation (iteration", iter, ", #factors =", nf, ")\n")
   cat("---------------------------------------------------------------------------------------------------------\n")
-  
-  
+
+
   if(iter == 1) {
     user.input <- dlgInput("Which rotation method should be applied? Type 'accept' to proceed to the next stage.", "promax")$res
   } else {
@@ -329,33 +375,31 @@ while(!UC) {
     cat("-- Rotation method selected:", rotationMethod, "\n")
   } else {
     rotationMethod = user.input
-    #pc4 <- principal(raqMatrix, nfactors = nf, rotate = rotationMethod)
-    pc4 <- fac(raqMatrix, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod)
+    pc4 <- fac(serMatrix$correlations, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod)
     cat("-- Rotation method selected:", rotationMethod, "\n")
     print.psych(pc4, cut = ECO_CUT_LEVEL, sort = TRUE)
-    
+
     cat("\n\n")
     cat("-- Factor structure (for visual inspection -- double check if this structure matrix is similar to the pattern matrix)\n")
     print(factor.structure(pc4, cut = ECO_CUT_LEVEL))
     readline(prompt="Press [enter] to continue")
-    #xxx what should be done if the factor loadings from the pattern and the structure matrices sharply disagree? 
+    #xxx what should be done if the factor loadings from the pattern and the structure matrices sharply disagree?
   }
 }
- 
+
 # displays the factor-variable interactions graph, with loadings from the pattern matrix
 displayFactorGraph(pc4)
 
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
-cat("Stage 4 - Collecting factor scores (#factors =", nf, ")\n")
+cat("Stage 4 - Estimating factor scores (#factors =", nf, ")\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 
 # must use original data instead of the correlation matrix
-#pc5 <- principal(raqData, nfactors = nf, rotate = rotationMethod, scores = TRUE)
-pc5 <- fac(raqData, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod, scores = "regression")
-newraqData <- cbind(raqData, pc5$scores)
-cat("Factor scores have been appended to the original data and is available in the 'newraqData' object\n")
+pc5 <- fac(oserData, nfactors = nf, n.obs = ss, fm = ECO_OPTIMETHOD, rotate = rotationMethod, scores = "regression", cor="poly")
+newserData <- cbind(serData, pc5$scores)
+cat("Factor scores have been appended to the original data and is available in the 'newserData' object\n")
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
@@ -379,11 +423,9 @@ for(factorName in names(clusters)) {
       }
     }
   }
-  #cat("   Factor composition:", factorComp, "\n")
-  #cat("   Factor keys ......:", factorKeys, "\n")
   cat("   Factor composition:", rownames(clusters)[factorComp], "\n")
   cat("   Factor keys ......:", factorKeys, "\n")
-  factorData <- raqData[, factorComp]
+  factorData <- oserData[, factorComp]
   if(length(factorComp) > 1) {
     print(psych::alpha(factorData, keys = factorKeys))
   } else {
@@ -392,12 +434,10 @@ for(factorName in names(clusters)) {
   readline(prompt="Press [enter] to continue")
 }
 
+# displays the loadings per variable on each factor
+displayLoadings(pc4)
 
 cat("\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
 cat("The analysis has completed.\n")
 cat("---------------------------------------------------------------------------------------------------------\n")
-
-# displays the loadings per variable on each factor
-displayLoadings(pc4)
-

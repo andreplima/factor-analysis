@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------------------------------------
 # This script has been adapted from
-# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs and
-#    Rock 'N' Roll. (pp. ). #London Sage
+# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs 
+#    and Rock 'N' Roll. (pp. 749-811). London, Sage.
 #-----------------------------------------------------------------------------------------------------------
 
 # sets the working directory
