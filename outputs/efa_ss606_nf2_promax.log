@@ -1,0 +1,263 @@
+---------------------------------------------------------------------------------------------------------
+Stage 1 - loads the preprocessed data and applies data quality tests
+---------------------------------------------------------------------------------------------------------
+-- Loading the dataset and computing its correlation matrix.
+   The datafile  answers-606-all-median.dat  has 606 samples and  9 variables.
+
+-- Applying data quality tests.
+   Bartlett test checks if the correlation matrix is significantly different from the identity.
+   .. Batlett test: Passed    ... (p-value = 0 < 0.05)
+   KMO measure assesses the relation between partial and total correlations.
+   .. The KMO test yields a degree of common variance mediocre. 
+   .. KMO test: Passed        ... (KMO = 0.695 > 0.5)
+   Multicollinearity test checks for issues with too much communality among variables.
+   .. Multicollinearity test:  Failed 
+
+** At least one of the data quality tests has failed.
+** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.
+
+
+---------------------------------------------------------------------------------------------------------
+Stage 2 - Performing factor extraction (iteration  0 , #factors = 9 )
+---------------------------------------------------------------------------------------------------------
+Principal Components Analysis
+Call: principal(r = serMatrix$correlations, nfactors = nf, rotate = "none")
+Standardized loadings (pattern matrix) based upon correlation matrix
+         PC1   PC2   PC3   PC4   PC5   PC6   PC7   PC8 PC9 h2       u2 com
+s1      0.83  0.28 -0.48 -0.04  0.01  0.04  0.05 -0.04   0  1  6.7e-16 1.9
+s2      0.71  0.24 -0.56 -0.24  0.01 -0.01 -0.21  0.17   0  1  4.4e-16 2.8
+s3     -0.08  0.70 -0.27  0.64 -0.05  0.11  0.03 -0.07   0  1  1.8e-15 2.4
+s4      0.87 -0.14  0.05 -0.09 -0.17 -0.08  0.38 -0.20   0  1  1.4e-15 1.7
+s5      0.69 -0.36  0.34  0.21 -0.10  0.36  0.06  0.32   0  1 -2.2e-16 3.5
+s6      0.58 -0.43  0.06  0.27  0.60 -0.18 -0.04 -0.04   0  1  3.3e-16 3.5
+s7      0.17  0.78  0.38 -0.02  0.02 -0.37  0.12  0.26   0  1  1.6e-15 2.4
+s8      0.72  0.05  0.46  0.11 -0.29 -0.12 -0.35 -0.19   0  1 -2.2e-16 3.0
+rating  0.15  0.71  0.39 -0.27  0.32  0.35 -0.01 -0.14   0  1  2.0e-15 3.2
+
+                       PC1  PC2  PC3  PC4  PC5  PC6  PC7  PC8 PC9
+SS loadings           3.33 2.07 1.24 0.68 0.59 0.45 0.33 0.30   0
+Proportion Var        0.37 0.23 0.14 0.08 0.07 0.05 0.04 0.03   0
+Cumulative Var        0.37 0.60 0.74 0.81 0.88 0.93 0.97 1.00   1
+Proportion Explained  0.37 0.23 0.14 0.08 0.07 0.05 0.04 0.03   0
+Cumulative Proportion 0.37 0.60 0.74 0.81 0.88 0.93 0.97 1.00   1
+
+Mean item complexity =  2.7
+Test of the hypothesis that 9 components are sufficient.
+
+The root mean square of the residuals (RMSR) is  0 
+
+Fit based upon off diagonal values = 1
+---------------------------------------------------------------------------------------------------------
+Stage 2 - Performing factor extraction (iteration  1 , #factors = 2 )
+---------------------------------------------------------------------------------------------------------
+Factor Analysis using method =  minres
+Call: fac(r = serMatrix$correlations, nfactors = nf, n.obs = ss, rotate = "none", 
+    fm = ECO_OPTIMETHOD)
+Standardized loadings (pattern matrix) based upon correlation matrix
+         MR1   MR2   h2   u2 com
+s1      0.84  0.29 0.79 0.21 1.2
+s2      0.65  0.22 0.47 0.53 1.2
+s3     -0.06  0.57 0.33 0.67 1.0
+s4      0.86 -0.16 0.76 0.24 1.1
+s5      0.62 -0.35 0.50 0.50 1.6
+s6      0.50 -0.37 0.39 0.61 1.8
+s7      0.15  0.66 0.45 0.55 1.1
+s8      0.62  0.02 0.39 0.61 1.0
+rating  0.12  0.56 0.33 0.67 1.1
+
+                       MR1  MR2
+SS loadings           2.93 1.48
+Proportion Var        0.33 0.16
+Cumulative Var        0.33 0.49
+Proportion Explained  0.66 0.34
+Cumulative Proportion 0.66 1.00
+
+Mean item complexity =  1.2
+Test of the hypothesis that 2 factors are sufficient.
+
+The degrees of freedom for the null model are  36  and the objective function was  19.08 with Chi Square of  11470.64
+The degrees of freedom for the model are 19  and the objective function was  16 
+
+The root mean square of the residuals (RMSR) is  0.1 
+The df corrected root mean square of the residuals is  0.14 
+
+The harmonic number of observations is  606 with the empirical chi square  473.61  with prob <  1.9e-88 
+The total number of observations was  606  with Likelihood Chi Square =  9599.71  with prob <  0 
+
+Tucker Lewis Index of factoring reliability =  -0.591
+RMSEA index =  0.917  and the 90 % confidence intervals are  0.898 0.928
+BIC =  9477.98
+Fit based upon off diagonal values = 0.91
+
+-- Assessing Kaiser's criteria
+   number of variables is  9 
+   number of variables with communality larger than 0.7:  2 
+   average communality per variable ...................:  0.49 (preferably larger than 0.6)
+   .. Kaiser's criterion #1:  Failed 
+   .. Kaiser's criterion #2:  Failed 
+   On Kaiser's criteria, the analysis should not proceed.
+
+-- Assessing a relative measure of fit between original and reconstructed correlation matrix
+   .. Fit test (residuals) .: Passed    ... (fit = 0.915 > 0.9)
+
+-- Assessing an absolute measure of fit between original and reconstructed correlation matrix
+   .. Number of residuals =  36 
+   .. Number     of absolute residuals > 0.05 =  22 
+   .. Proportion of absolute residuals > 0.05 =  0.6111111 
+   .. Root mean squared residual =  0.104186 
+   .. Normality of residuals: Passed (Shapiro-Wilk test)
+   .. Fit test (residuals) .: Failed    ... (prop = 0.6111111 < 0.5)
+
+-- Number of factors extracted: 2 
+
+Press [enter] to continue
+** WARNING: proceeding with the analysis even though the quality criteria have not been fully met.
+
+---------------------------------------------------------------------------------------------------------
+Stage 3 - Performing factor rotation (iteration 1 , #factors = 2 )
+---------------------------------------------------------------------------------------------------------
+-- Rotation method selected: promax 
+Factor Analysis using method =  minres
+Call: fac(r = serMatrix$correlations, nfactors = nf, n.obs = ss, rotate = rotationMethod, 
+    fm = ECO_OPTIMETHOD)
+Standardized loadings (pattern matrix) based upon correlation matrix
+       item   MR1   MR2   h2   u2 com
+s4        4  0.87       0.76 0.24 1.0
+s1        1  0.81  0.37 0.79 0.21 1.4
+s5        5  0.65       0.50 0.50 1.4
+s2        2  0.63       0.47 0.53 1.4
+s8        8  0.62       0.39 0.61 1.0
+s6        6  0.54 -0.32 0.39 0.61 1.6
+s7        7        0.67 0.45 0.55 1.0
+rating    9        0.57 0.33 0.67 1.0
+s3        3        0.56 0.33 0.67 1.1
+
+                       MR1  MR2
+SS loadings           2.91 1.50
+Proportion Var        0.32 0.17
+Cumulative Var        0.32 0.49
+Proportion Explained  0.66 0.34
+Cumulative Proportion 0.66 1.00
+
+ With factor correlations of 
+    MR1 MR2
+MR1   1   0
+MR2   0   1
+
+Mean item complexity =  1.2
+Test of the hypothesis that 2 factors are sufficient.
+
+The degrees of freedom for the null model are  36  and the objective function was  19.08 with Chi Square of  11470.64
+The degrees of freedom for the model are 19  and the objective function was  16 
+
+The root mean square of the residuals (RMSR) is  0.1 
+The df corrected root mean square of the residuals is  0.14 
+
+The harmonic number of observations is  606 with the empirical chi square  473.61  with prob <  1.9e-88 
+The total number of observations was  606  with Likelihood Chi Square =  9599.71  with prob <  0 
+
+Tucker Lewis Index of factoring reliability =  -0.591
+RMSEA index =  0.917  and the 90 % confidence intervals are  0.898 0.928
+BIC =  9477.98
+Fit based upon off diagonal values = 0.91
+
+-- Factor structure (for visual inspection -- double check if this structure matrix is similar to the pattern matrix)
+        MR1   MR2
+s4     0.87      
+s1      0.8  0.37
+s5     0.65      
+s2     0.63      
+s8     0.62      
+s6     0.54 -0.32
+s7           0.67
+rating       0.57
+s3           0.57
+Press [enter] to continue
+---------------------------------------------------------------------------------------------------------
+Stage 3 - Performing factor rotation (iteration 2 , #factors = 2 )
+---------------------------------------------------------------------------------------------------------
+-- Rotation method selected: promax 
+
+---------------------------------------------------------------------------------------------------------
+Stage 4 - Estimating factor scores (#factors = 2 )
+---------------------------------------------------------------------------------------------------------
+Factor scores have been appended to the original data and is available in the 'newserData' object
+
+---------------------------------------------------------------------------------------------------------
+Stage 5 - Performing reliability analysis for each subscale (#factors = 2 )
+---------------------------------------------------------------------------------------------------------
+-- Performing reliability analysis for  MR1 
+   Factor composition: s1 s2 s4 s5 s6 s8 
+   Factor keys ......: 1 1 1 1 1 1 
+
+Reliability analysis   
+Call: psych::alpha(x = factorData, keys = factorKeys)
+
+  raw_alpha std.alpha G6(smc) average_r S/N   ase mean   sd median_r
+      0.77      0.77    0.79      0.36 3.4 0.014  2.3 0.88     0.39
+
+ lower alpha upper     95% confidence boundaries
+0.75 0.77 0.8 
+
+ Reliability if an item is dropped:
+   raw_alpha std.alpha G6(smc) average_r S/N alpha se var.r med.r
+s1      0.74      0.75    0.73      0.37 2.9    0.017 0.020  0.40
+s2      0.75      0.75    0.74      0.38 3.0    0.016 0.019  0.42
+s4      0.69      0.69    0.71      0.31 2.3    0.020 0.027  0.24
+s5      0.74      0.74    0.74      0.36 2.8    0.016 0.025  0.34
+s6      0.76      0.77    0.78      0.40 3.3    0.015 0.029  0.43
+s8      0.74      0.74    0.75      0.36 2.9    0.017 0.029  0.40
+
+ Item statistics 
+     n raw.r std.r r.cor r.drop mean  sd
+s1 606  0.70  0.67  0.61   0.52  1.6 1.4
+s2 606  0.69  0.65  0.58   0.49  2.3 1.5
+s4 606  0.81  0.81  0.77   0.69  2.5 1.4
+s5 606  0.67  0.70  0.62   0.51  2.7 1.2
+s6 606  0.58  0.61  0.47   0.41  2.4 1.1
+s8 606  0.65  0.68  0.59   0.51  2.6 1.1
+
+Non missing response frequency for each item
+      1    2    3    4    5 miss
+s1 0.85 0.00 0.00 0.00 0.15    0
+s2 0.48 0.15 0.12 0.14 0.11    0
+s4 0.32 0.25 0.13 0.22 0.09    0
+s5 0.19 0.29 0.21 0.24 0.07    0
+s6 0.26 0.34 0.21 0.14 0.04    0
+s8 0.18 0.29 0.32 0.16 0.05    0
+Press [enter] to continue
+-- Performing reliability analysis for  MR2 
+   Factor composition: s3 s7 rating 
+   Factor keys ......: 1 1 1 
+
+Reliability analysis   
+Call: psych::alpha(x = factorData, keys = factorKeys)
+
+  raw_alpha std.alpha G6(smc) average_r S/N   ase mean  sd median_r
+      0.53      0.57    0.49      0.31 1.3 0.032    4 0.5     0.29
+
+ lower alpha upper     95% confidence boundaries
+0.47 0.53 0.59 
+
+ Reliability if an item is dropped:
+       raw_alpha std.alpha G6(smc) average_r  S/N alpha se var.r med.r
+s3          0.58      0.62    0.45      0.45 1.63    0.030    NA  0.45
+s7          0.27      0.31    0.18      0.18 0.45    0.049    NA  0.18
+rating      0.44      0.45    0.29      0.29 0.81    0.045    NA  0.29
+
+ Item statistics 
+         n raw.r std.r r.cor r.drop mean   sd
+s3     606  0.77  0.67  0.36   0.29  3.8 0.86
+s7     606  0.78  0.79  0.64   0.43  4.3 0.71
+rating 606  0.63  0.74  0.54   0.38  4.0 0.46
+
+Non missing response frequency for each item
+          1    2    3  3.5    4  4.5    5 miss
+s3     0.01 0.06 0.25 0.00 0.50 0.00 0.18    0
+s7     0.00 0.02 0.10 0.00 0.47 0.00 0.42    0
+rating 0.00 0.00 0.00 0.38 0.38 0.16 0.08    0
+Press [enter] to continue
+
+---------------------------------------------------------------------------------------------------------
+The analysis has completed.
+---------------------------------------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 .RData
 .RHistory
 *.bak
-*.log
 DSUR*.*
 *.zip

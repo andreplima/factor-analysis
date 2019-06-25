@@ -27,9 +27,9 @@ ECO_OPTIMETHOD = 'minres'
 
 # sets the working directory
 setwd("C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis")
-imageDirectory<-"C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/datasets/serendipity2018"
-#filename = "answers-ra-s3-q.dat"
-filename = "answers-nf-nf-me.dat"
+datasetDirectory <- "C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/datasets/serendipity2018"
+outputDirectory  <- "C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/outputs"
+filename = "answers-606-all-median.dat"
 
 
 # installs necessary packages
@@ -68,8 +68,8 @@ typeSer2018Data <- function(odata) {
   return(list(odata, data, datalk))
 }
 
-loadSer2018Data <- function(imageDirectory, filename){
-  data <- read.delim(file.path(imageDirectory, filename), header = TRUE)
+loadSer2018Data <- function(datasetDirectory, filename){
+  data <- read.delim(file.path(datasetDirectory, filename), header = TRUE)
   data$q <- NULL  # removes the item that is related to recency of event
   return(typeSer2018Data(data))
 }
@@ -208,7 +208,7 @@ cat("---------------------------------------------------------------------------
 # (assumes that any measures needed to tackle outliers or missing/invalid data have already been taken
 cat("-- Loading the dataset and computing its correlation matrix.\n")
 
-list[oserData, serData, serDataLk] <- loadSer2018Data(imageDirectory, filename)
+list[oserData, serData, serDataLk] <- loadSer2018Data(datasetDirectory, filename)
 nv = ncol(serData) # nv stands for the number of variables in the dataset
 nf = ncol(serData) # nf stands for the number of factors to be extracted
 ss = nrow(serData) # ss stands for the sample size (number of cases)
@@ -324,7 +324,7 @@ while (!UC){
     if (KC1 || KC2) {
       cat("   On Kaiser's criteria, the analysis may proceeed.\n")
     } else {
-      cat("   On Kaiser criteria, the analysis should not proceed.\n")
+      cat("   On Kaiser's criteria, the analysis should not proceed.\n")
     }
     cat("\n")
 
@@ -339,7 +339,7 @@ while (!UC){
     residuals <- as.matrix(residmatrix[upper.tri(residmatrix)])
     propLargeResid = residual.stats(residuals, nf)
     RC2 = propLargeResid < 0.5
-    cat("   .. Fit test (residuals) .:", if (RC2) "Passed" else "Failed", "   ... (fit =", propLargeResid, "< 0.5)\n")
+    cat("   .. Fit test (residuals) .:", if (RC2) "Passed" else "Failed", "   ... (prop =", propLargeResid, "< 0.5)\n")
 
     cat("\n")
     cat("-- Number of factors extracted:", nf, "\n")
@@ -350,7 +350,6 @@ while (!UC){
     par(mfrow=c(1,3))
     displayScreePlot(pc1$values)
     displayResidualsHist(residuals, nf)
-
     readline(prompt="Press [enter] to continue")
   }
 }
