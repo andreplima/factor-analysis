@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------------------------------------
-# This code performs factor analysis on the Serendipity'2018 dataset, which has generously been made 
+# This code performs factor analysis on the Serendipity'2018 dataset, which has been generously made 
 # available by the authors:
 # Kotkov, D., Konstan, J. A., Zhao, Q., & Veijalainen, J. (2018, April). Investigating serendipity in
 #   recommender systems based on real user feedback. In Proceedings of the 33rd Annual ACM Symposium on
@@ -7,7 +7,7 @@
 # The complete dataset is available at: https://grouplens.org/datasets/serendipity-2018/
 #
 # We would also like to acknowledge the following authors for the R code for exploratory factor analysis, 
-# from which we greatly benefitted:
+# from which we benefited greatly:
 # Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs 
 #    and Rock 'N' Roll. (pp. 749-811). London, Sage.
 #-----------------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------------------------------------
-# This code performs factor analysis on the Serendipity'2018 dataset, which has generously been made 
+# This code performs factor analysis on the Serendipity'2018 dataset, which has been generously made 
 # available by the authors:
 # Kotkov, D., Konstan, J. A., Zhao, Q., & Veijalainen, J. (2018, April). Investigating serendipity in
 #   recommender systems based on real user feedback. In Proceedings of the 33rd Annual ACM Symposium on
@@ -7,11 +7,10 @@
 # The complete dataset is available at: https://grouplens.org/datasets/serendipity-2018/
 #
 # We would also like to acknowledge the following authors for the R code for exploratory factor analysis, 
-# from which we greatly benefitted:
+# from which we benefited greatly:
 # Revelle, W. (2018) psych: Procedures for Personality and Psychological Research, Northwestern University,
 #    Evanston, Illinois, USA, https://CRAN.R-project.org/package=psych Version = 1.8.12.
-# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R: and Sex and Drugs 
-#    and Rock 'N' Roll. (pp. 749-811). London, Sage.
+# Field, A. P., Miles, J. N. V., & Field, Z. C. (2012). Discovering Statistics Using R. (pp. 749-811). London, Sage.
 #-----------------------------------------------------------------------------------------------------------
 
 # removes the current environment variables
@@ -22,6 +21,7 @@ plot.new()
 ECO_CUT_LEVEL  = 0.3
 ECO_CUT_2CHK   = 0.1
 ECO_PRECISION  = 3
+#ECO_OPTIMETHOD = 'wls'
 ECO_OPTIMETHOD = 'minres'
 
 
@@ -29,6 +29,8 @@ ECO_OPTIMETHOD = 'minres'
 setwd("C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis")
 datasetDirectory <- "C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/datasets/serendipity2018"
 outputDirectory  <- "C:/Users/andre/OneDrive/Documentos/gitrepos/factor-analysis/outputs"
+#filename = "answers-all-all-median.dat"
+#filename = "answers-1399-all-median.dat"
 filename = "answers-606-all-median.dat"
 
 
@@ -61,7 +63,11 @@ library(gsubfn)
 
 typeSer2018Data <- function(odata) {
   data <- odata
+  
+  #data$s3 <- NULL # removes the item that is becomes isolated 
+  #idxs = c("s1", "s2", "s4", "s5", "s6", "s7", "s8")
   idxs = paste("s", 1:8, sep="")
+  
   data[idxs] <- lapply(data[idxs], factor, levels = 1:5)
   data["rating"] <- lapply(data["rating"],  factor, levels = seq(.5,5,by=.5))
   datalk <- likert(data[idxs])
@@ -76,7 +82,7 @@ loadSer2018Data <- function(datasetDirectory, filename){
 
 # KMO Kaiser-Meyer-Olkin Measure of Sampling Adequacy
 # Function by G. Jay Kerns, Ph.D., Youngstown State University (http://tolstoy.newcastle.edu.au/R/e2/help/07/08/22816.html)
-# Adapted by Andre P Lima for using a polychoric correlation matrix
+# Adapted by Andre P Lima for using with a polychoric correlation matrix
 kmo = function(data, corMatrix){
   #X   <- cor(as.matrix(data));
   X   <- corMatrix$correlations;
@@ -142,8 +148,8 @@ displayLikert <- function(data_likert) {
 
 displayScreePlot <- function(eigenvals) {
   # draws the scree plot (integral, non-rotated PCA)
-  par(mfg=c(1,1))
-  plot(eigenvals, type = "b", main = "1. Scree Plot from integral, non-rotated PCA", xlab = "component", ylab = "eigenvalue")
+  par(mfg=c(1,3))
+  plot(eigenvals, type = "b", main = "Scree Plot, non-rotated PCA", xlab = "component", ylab = "eigenvalue", cex.main=1.5, cex.axis=1.2, cex.lab=1.5)
   abline(h=1, col="red", lty=2, lwd=1)
   text(1.2, 1.1, "Kaiser", col="red")
   abline(h=.7, col="red", lty=2, lwd=1)
@@ -163,7 +169,7 @@ displayResidualsHist <- function(residuals, nf) {
 displayFactorGraph <- function(results) {
   # plots the factor-variable graph
   par(mfg=c(1,3))
-  fa.diagram(results, main = "3. Factors and standardised loadings\n(from the pattern matrix)", marg = c(.5,.5, 5,.5))
+  fa.diagram(results, main = "3. Factors and standardised loadings\n(from the pattern matrix)", marg = c(.5,.5, 5,.5), cex.main=1.5, cex.axis=1.2, cex.lab=1.5)
   Sys.sleep(0.1)
 }
 
@@ -228,10 +234,13 @@ cat("   .. Batlett test:", if (DQ1) "Passed" else "Failed", "   ... (p-value =",
 
 # applies a test based on the Keiser-Meyer-Olkin (KMO) measure for sampling adequacy
 res = kmo(serData, serMatrix)
-DQ2 = res$overall > .5
+DQ2a = res$overall > .5
+DQ2b = sum(res$individual < .5) == 0
+DQ2 = DQ2a && DQ2b
 cat("   KMO measure assesses the relation between partial and total correlations.\n")
 cat("   ..", res$report, "\n")
-cat("   .. KMO test:", if (DQ2) "Passed" else "Failed", "       ... (KMO =", res$overall, "> 0.5)\n")
+cat("   .. KMO test ...:", if (DQ2a) "Passed" else "Failed", "   ... (KMO =", res$overall, "> 0.5)\n")
+cat("   .. KMO MSA ....:", if (DQ2b) "Passed" else "Failed", "   ... (", sum(res$individual < .5), " variables with KMO under 0.5)\n")
 
 # applies the determinant test to assure correlations are not too high
 DQ3 = det(serMatrix$correlations) > 1e-5
